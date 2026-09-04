@@ -11,8 +11,8 @@ const User = sequelize.define(
     },
     empId: {
       type: DataTypes.STRING,
-      // unique: true,
-      allowNull: true,
+      unique: true,
+      allowNull: false,
     },
     name: {
       type: DataTypes.STRING,
