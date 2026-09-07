@@ -1,0 +1,75 @@
+================================================
+GOLD SHOP API DOCUMENTATION (SIMPLE FORMAT)
+================================================
+
+BASE URL: http://localhost:5000/api
+AUTH: Require Header -> Authorization: Bearer <your_token>
+
+------------------------------------------------
+1. PROFILES API
+------------------------------------------------
+Applies to: /vendors, /workers, /bullions, /processors
+
+METHODS:
+GET    /vendors       -> Get all vendors
+GET    /vendors/:id   -> Get vendor by ID
+POST   /vendors       -> Create new vendor
+PUT    /vendors/:id   -> Update vendor
+DELETE /vendors/:id   -> Delete vendor
+
+EXAMPLE PAYLOAD (Send as JSON):
+{
+  "name": "Ramesh",
+  "phoneNumber": "9876543210",
+  "city": "Hyderabad",
+  "cashGiven": 5000,
+  "goldGiven": 50.500
+}
+
+
+------------------------------------------------
+2. ORDERS API
+------------------------------------------------
+Applies to: /orders
+
+METHODS:
+GET    /orders       -> Get all orders
+GET    /orders/:id   -> Get order by ID
+POST   /orders       -> Create new order
+PUT    /orders/:id   -> Update order
+DELETE /orders/:id   -> Delete order
+
+EXAMPLE PAYLOAD (Send as JSON):
+{
+  "customerName": "Suresh",
+  "customerPhone": "9123456789",
+  "orderType": "New Order",
+  "itemType": "order",
+  "ornamentName": "Gold Necklace",
+  
+  "netWeight": 31.500,
+  "grossWeight": 32.750,
+  "totalAmount": 250000,
+  "advanceAmount": 30000,
+  "paymentMode": "Cash",
+
+  "hasStone": "Yes Stone",
+  "stoneType": "Diamond",
+  "stoneWeight": 1.250,
+  "stoneCost": 15000,
+
+  "hasOldGold": "Yes",
+  "beforeProcessingWeight": 25.500,
+  "afterProcessingWeight": 24.850,
+
+  "workerId": 1,
+  "totalGoldGivenToWorker": 35.000,
+  "workerGoldWastage": 1.500,
+
+  "bullionId": 3,
+  "usedBullionGold": 9.500
+}
+
+================================================
+END OF DOCUMENT
+================================================

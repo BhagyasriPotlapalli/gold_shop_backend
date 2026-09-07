@@ -7,6 +7,12 @@ import authRoutes from './routes/authRoutes.js';
 import companyRoutes from './routes/companyRoutes.js';
 import branchRoutes from './routes/branchRoutes.js';
 
+import vendorRoutes from './routes/vendorRoutes.js';
+import workerRoutes from './routes/workerRoutes.js';
+import bullionRoutes from './routes/bullionRoutes.js';
+import processorRoutes from './routes/processorRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,9 +33,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/branches', branchRoutes);
 
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/bullions', bullionRoutes);
+app.use('/api/processors', processorRoutes);
+app.use('/api/orders', orderRoutes);
+
 // Base route
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Food Court POS API (MySQL)' });
+  res.json({ message: 'Welcome to Gold Shop POS API' });
 });
 
 // Global Error Handler
