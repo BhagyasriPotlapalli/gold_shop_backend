@@ -1,7 +1,9 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 
-const Order = sequelize.define('Order', {
+const GoldOrder = sequelize.define('GoldOrder', {
+  orderNumber: { type: DataTypes.STRING, unique: true },
+  status: { type: DataTypes.STRING, defaultValue: 'PENDING' },
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -20,6 +22,7 @@ const Order = sequelize.define('Order', {
   workerId: { type: DataTypes.INTEGER },
   vendorId: { type: DataTypes.INTEGER },
   bullionId: { type: DataTypes.INTEGER },
+  processorId: { type: DataTypes.INTEGER },
   
   orderType: { type: DataTypes.STRING }, // e.g., 'New Order'
   itemType: { type: DataTypes.STRING },  // e.g., 'order' or 'sale'
@@ -73,7 +76,7 @@ const Order = sequelize.define('Order', {
 
 }, {
   timestamps: true,
-  tableName: 'orders'
+  tableName: 'gold_orders'
 });
 
-export default Order;
+export default GoldOrder;

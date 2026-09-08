@@ -6,12 +6,10 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import companyRoutes from './routes/companyRoutes.js';
 import branchRoutes from './routes/branchRoutes.js';
-
-import vendorRoutes from './routes/vendorRoutes.js';
-import workerRoutes from './routes/workerRoutes.js';
-import bullionRoutes from './routes/bullionRoutes.js';
-import processorRoutes from './routes/processorRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import goldOrderRoutes from './routes/goldOrderRoutes.js';
+import auditLogRoutes from './routes/auditLogRoutes.js';
+import metalRateRoutes from './routes/metalRateRoutes.js';
 
 dotenv.config();
 
@@ -33,11 +31,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/branches', branchRoutes);
 
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/workers', workerRoutes);
-app.use('/api/bullions', bullionRoutes);
-app.use('/api/processors', processorRoutes);
-app.use('/api/orders', orderRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/gold-orders', goldOrderRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/metal-rates', metalRateRoutes);
 
 // Base route
 app.get('/', (req, res) => {

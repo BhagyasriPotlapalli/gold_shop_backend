@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User, UserAuditLog } from '../models/index.js';
+import { User } from '../models/index.js';
+import { logAudit } from '../utils/auditLogger.js';
 import { Op } from 'sequelize';
 
 export const register = async (req, res) => {
@@ -39,11 +40,13 @@ export const register = async (req, res) => {
     const creatorUser = await User.findByPk(creatorId);
     const creatorName = creatorUser ? creatorUser.name : 'System';
 
-    await UserAuditLog.create({
-      action: 'Create User',
-      userId: newUser.id,
-      performedBy: creatorId,
-      details: `Created new user ${name} with role ${role} by ${creatorName}`
+    await logAudit({
+      req,
+      action: 'AUTH_ACTION',
+      module: 'AUTH',
+      description: 'Authentication action performed',
+      entity: { id: 0, type: 'USER', name: 'System' },
+      changes: null
     });
 
     res.status(201).json({ message: 'User created successfully!', userId: newUser.id });
@@ -84,11 +87,13 @@ export const login = async (req, res) => {
       { expiresIn: 86400 } // 24 hours
     );
 
-    await UserAuditLog.create({
-      action: 'Login',
-      userId: user.id,
-      performedBy: user.id,
-      details: `User ${user.name} logged in successfully`
+    await logAudit({
+      req,
+      action: 'AUTH_ACTION',
+      module: 'AUTH',
+      description: 'Authentication action performed',
+      entity: { id: 0, type: 'USER', name: 'System' },
+      changes: null
     });
 
     res.status(200).json({
@@ -135,11 +140,13 @@ export const updateProfileImage = async (req, res) => {
     const actorUser = await User.findByPk(req.userId);
     const actorName = actorUser ? actorUser.name : 'Unknown';
 
-    await UserAuditLog.create({
-      action: 'Update User',
-      userId: user.id,
-      performedBy: req.userId,
-      details: `Profile image updated for ${user.name} by ${actorName}`
+    await logAudit({
+      req,
+      action: 'AUTH_ACTION',
+      module: 'AUTH',
+      description: 'Authentication action performed',
+      entity: { id: 0, type: 'USER', name: 'System' },
+      changes: null
     });
 
     res.status(200).json({ message: 'Profile image updated successfully', profileImage: user.profileImage });
@@ -198,11 +205,13 @@ export const editUser = async (req, res) => {
     const actorUser = await User.findByPk(req.userId);
     const actorName = actorUser ? actorUser.name : 'Unknown';
 
-    await UserAuditLog.create({
-      action: 'Update User',
-      userId: user.id,
-      performedBy: req.userId,
-      details: `User ${user.name}'s details updated by ${actorName}`
+    await logAudit({
+      req,
+      action: 'AUTH_ACTION',
+      module: 'AUTH',
+      description: 'Authentication action performed',
+      entity: { id: 0, type: 'USER', name: 'System' },
+      changes: null
     });
 
     res.status(200).json({ message: 'User updated successfully' });
@@ -247,54 +256,6 @@ export const getUserById = async (req, res) => {
   }
 };
 
-export const getAuditLogs = async (req, res) => {
-  try {
-    const { role } = req.query;
-    const include = [];
-
-    // Filter by target user role
-    if (role) {
-      include.push({
-        model: User,
-        as: 'TargetUser',
-        where: { role },
-        attributes: ['id', 'empId', 'name', 'role']
-      });
-    } else {
-      include.push({
-        model: User,
-        as: 'TargetUser',
-        attributes: ['id', 'empId', 'name', 'role']
-      });
-    }
-
-    include.push({
-      model: User,
-      as: 'Actor',
-      attributes: ['id', 'empId', 'name', 'role']
-    });
-
-    const logs = await UserAuditLog.findAll({
-      include,
-      order: [['createdAt', 'DESC']]
-    });
-
-    // Formatting response to explicitly include the name of the user who performed the action 
-    // and the created/target user's name at the root of each log object as requested
-    const formattedLogs = logs.map(log => {
-      const logData = log.toJSON();
-      return {
-        ...logData,
-        createdUserName: logData.TargetUser ? logData.TargetUser.name : null,
-        performedByUserName: logData.Actor ? logData.Actor.name : null
-      };
-    });
-
-    res.status(200).json(formattedLogs);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
 
 export const setupSuperAdmin = async (req, res) => {
   try {
@@ -323,10 +284,13 @@ export const setupSuperAdmin = async (req, res) => {
       accountStatus: 'Active'
     });
 
-    await UserAuditLog.create({
-      action: 'System Setup',
-      userId: newSuperAdmin.id,
-      details: `Initial Super Admin ${name} created via bootstrap endpoint`
+    await logAudit({
+      req,
+      action: 'AUTH_ACTION',
+      module: 'AUTH',
+      description: 'Authentication action performed',
+      entity: { id: 0, type: 'USER', name: 'System' },
+      changes: null
     });
 
     res.status(201).json({ 

@@ -1,5 +1,5 @@
 ================================================
-GOLD SHOP API DOCUMENTATION (SIMPLE FORMAT)
+GOLD SHOP API DOCUMENTATION
 ================================================
 
 BASE URL: http://localhost:5000/api
@@ -8,18 +8,20 @@ AUTH: Require Header -> Authorization: Bearer <your_token>
 ------------------------------------------------
 1. PROFILES API
 ------------------------------------------------
-Applies to: /vendors, /workers, /bullions, /processors
+This single API manages Vendors, Workers, Bullions, and Processors.
+Use the "type" field to clarify which one it is!
 
 METHODS:
-GET    /vendors       -> Get all vendors
-GET    /vendors/:id   -> Get vendor by ID
-POST   /vendors       -> Create new vendor
-PUT    /vendors/:id   -> Update vendor
-DELETE /vendors/:id   -> Delete vendor
+GET    /profiles       -> Get all profiles (You can filter via ?type=Worker)
+GET    /profiles/:id   -> Get profile by ID
+POST   /profiles       -> Create new profile
+PUT    /profiles/:id   -> Update profile
+DELETE /profiles/:id   -> Delete profile
 
 EXAMPLE PAYLOAD (Send as JSON):
 {
-  "name": "Ramesh",
+  "type": "Worker",       <-- REQUIRED: 'Vendor', 'Worker', 'Bullion', or 'Processor'
+  "name": "Ramesh",       <-- REQUIRED
   "phoneNumber": "9876543210",
   "city": "Hyderabad",
   "cashGiven": 5000,

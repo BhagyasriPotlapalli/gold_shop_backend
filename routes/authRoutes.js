@@ -7,7 +7,6 @@ import {
   editUser,
   getAllUsers,
   getUserById,
-  getAuditLogs,
   setupSuperAdmin
 } from '../controllers/authController.js';
 import { verifyToken, isManagement } from '../middleware/auth.js';
@@ -30,6 +29,5 @@ router.put('/profile-image', [verifyToken, upload.single('profileImage')], updat
 router.put('/:id', [verifyToken], editUser);
 router.get('/', [verifyToken], getAllUsers);
 router.get('/:id', [verifyToken], getUserById);
-router.get('/audit/logs', [verifyToken, isManagement], getAuditLogs);
 
 export default router;
