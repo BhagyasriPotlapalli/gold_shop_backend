@@ -43,7 +43,7 @@ export const createGoldOrder = async (req, res) => {
 
 export const getGoldOrders = async (req, res) => {
   try {
-    const { for: purpose, records, workerId } = req.query;
+    const { for: purpose, records, workerId, status } = req.query;
     const where = {};
     let order = [['createdAt', 'DESC']]; // default descending order
 
@@ -65,6 +65,11 @@ export const getGoldOrders = async (req, res) => {
     // Filter for specific worker assignments
     if (workerId) {
       where.workerId = workerId;
+    }
+
+    // Filter by order status
+    if (status) {
+      where.status = status;
     }
 
     const data = await GoldOrder.findAll({ where, order });

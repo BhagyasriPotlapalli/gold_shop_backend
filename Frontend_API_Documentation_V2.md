@@ -71,6 +71,7 @@
 - **GET** `/gold-orders?records=assigned` (Orders assigned to a worker OR vendor)
 - **GET** `/gold-orders?records=unassigned` (Orders NOT assigned to a worker or vendor)
 - **GET** `/gold-orders?workerId=1` (Orders assigned to a specific worker)
+- **GET** `/gold-orders?status=IN_PROGRESS` (Filter by exact status string)
 - **GET** `/gold-orders/:id`
 - **POST** `/gold-orders` (Send Raw JSON)
 - **PUT** `/gold-orders/:id` (Send Raw JSON for data updates, OR `multipart/form-data` for image uploads)
