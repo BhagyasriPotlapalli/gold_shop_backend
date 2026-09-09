@@ -23,7 +23,22 @@ export const createProfile = async (req, res) => {
 export const getProfiles = async (req, res) => {
   try {
     const where = req.query.type ? { type: req.query.type } : {};
-    const data = await Profile.findAll({ where });
+    
+    // Only fetch the exact fields requested by the user
+    const data = await Profile.findAll({
+      where,
+      attributes: [
+        'id', 
+        'type', 
+        'name', 
+        'phoneNumber', 
+        'city', 
+        'country', 
+        'profileImage', 
+        'createdAt', 
+        'updatedAt'
+      ]
+    });
     
     // Capitalize type for message, e.g. "Worker" -> "Workers"
     let message = 'Profiles fetched successfully';

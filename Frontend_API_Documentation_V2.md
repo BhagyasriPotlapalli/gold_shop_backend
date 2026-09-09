@@ -9,11 +9,34 @@
 **Description:** A single API to manage Vendors, Workers, Bullions, and Processors.
 
 ### Endpoints
-- **GET** `/profiles?type=Worker` (Returns wrapped JSON: `{ success: true, message: "Workers fetched successfully", data: [...] }`)
+- **GET** `/profiles?type=Worker` (Optional: filter by `type`)
 - **GET** `/profiles/:id`
 - **POST** `/profiles`
 - **PUT** `/profiles/:id`
 - **DELETE** `/profiles/:id`
+
+### EXACT GET JSON Response Example (For List View)
+*Note: The `GET /profiles` endpoint is optimized to only return essential display fields. It excludes heavy accounting data like balances to keep the frontend fast.*
+
+```json
+{
+  "success": true,
+  "message": "Workers fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "type": "worker",
+      "name": "manikanta",
+      "phoneNumber": "6302139442",
+      "city": "hyd",
+      "country": null,
+      "profileImage": null,
+      "createdAt": "2026-09-09T14:49:22.000Z",
+      "updatedAt": "2026-09-09T14:49:22.000Z"
+    }
+  ]
+}
+```
 
 ### EXACT POST/PUT JSON Payload Example
 ```json
