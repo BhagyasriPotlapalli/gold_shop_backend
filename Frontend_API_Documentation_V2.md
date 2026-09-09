@@ -9,7 +9,7 @@
 **Description:** A single API to manage Vendors, Workers, Bullions, and Processors.
 
 ### Endpoints
-- **GET** `/profiles?type=Worker` (Optional: filter by `type`)
+- **GET** `/profiles?type=Worker` (Returns wrapped JSON: `{ success: true, message: "Workers fetched successfully", data: [...] }`)
 - **GET** `/profiles/:id`
 - **POST** `/profiles`
 - **PUT** `/profiles/:id`

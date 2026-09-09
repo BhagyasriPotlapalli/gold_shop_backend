@@ -24,9 +24,21 @@ export const getProfiles = async (req, res) => {
   try {
     const where = req.query.type ? { type: req.query.type } : {};
     const data = await Profile.findAll({ where });
-    res.status(200).json(data);
+    
+    // Capitalize type for message, e.g. "Worker" -> "Workers"
+    let message = 'Profiles fetched successfully';
+    if (req.query.type) {
+      const typeName = req.query.type.charAt(0).toUpperCase() + req.query.type.slice(1);
+      message = `${typeName}s fetched successfully`;
+    }
+
+    res.status(200).json({
+      success: true,
+      message,
+      data
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
