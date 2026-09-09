@@ -70,10 +70,13 @@
 - **GET** `/gold-orders?for=processing` (Orders WITH old gold, UNASSIGNED to a processor)
 - **GET** `/gold-orders?records=assigned` (Orders assigned to a worker OR vendor)
 - **GET** `/gold-orders?records=unassigned` (Orders NOT assigned to a worker or vendor)
+- **GET** `/gold-orders?workerId=1` (Orders assigned to a specific worker)
 - **GET** `/gold-orders/:id`
 - **POST** `/gold-orders` (Send Raw JSON)
 - **PUT** `/gold-orders/:id` (Send Raw JSON for data updates, OR `multipart/form-data` for image uploads)
 - **DELETE** `/gold-orders/:id`
+
+*(Note: The GET calls return a wrapped JSON response: `{ success: true, message: "...", data: [...] }`)*
 
 ### EXACT POST Payload Example (Raw JSON)
 *Use standard `application/json` for creating the order. All fields below are optional, so you can send a partial draft. You will upload images later via a PUT request.*

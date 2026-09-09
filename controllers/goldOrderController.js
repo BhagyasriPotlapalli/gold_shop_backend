@@ -43,7 +43,7 @@ export const createGoldOrder = async (req, res) => {
 
 export const getGoldOrders = async (req, res) => {
   try {
-    const { for: purpose, records } = req.query;
+    const { for: purpose, records, workerId } = req.query;
     const where = {};
     let order = [['createdAt', 'DESC']]; // default descending order
 
@@ -62,10 +62,20 @@ export const getGoldOrders = async (req, res) => {
       where.vendorId = null;
     }
 
+    // Filter for specific worker assignments
+    if (workerId) {
+      where.workerId = workerId;
+    }
+
     const data = await GoldOrder.findAll({ where, order });
-    res.status(200).json(data);
+    
+    res.status(200).json({
+      success: true,
+      message: "Gold orders fetched successfully",
+      data
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
