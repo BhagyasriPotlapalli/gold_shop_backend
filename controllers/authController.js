@@ -7,20 +7,31 @@ import { Op } from 'sequelize';
 export const register = async (req, res) => {
   try {
     const { empId, name, phoneNumber, password, role } = req.body;
-    const creatorRole = req.userRole||null; // From verifyToken middleware
-    const creatorId = req.userId||null;
+
+    const creatorRole = req.userRole || null;
+    const creatorId = req.userId || null;
 
     // Role-based access control for creation
-    if (creatorRole === 'Admin' && role !== 'Staff') {
-      return res.status(403).json({ message: 'Admin can only create Staff accounts.' });
-    }
-    if (creatorRole === 'Staff') {
-      return res.status(403).json({ message: 'Staff cannot create accounts.' });
+    if (creatorRole === "Admin" && role !== "Staff") {
+      return res.status(403).json({
+        message: "Admin can only create Staff accounts."
+      });
     }
 
-    const existingUser = await User.findOne({ where: { empId } });
+    if (creatorRole === "Staff") {
+      return res.status(403).json({
+        message: "Staff cannot create accounts."
+      });
+    }
+
+    const existingUser = await User.findOne({
+      where: { empId }
+    });
+
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this Employee ID already exists.' });
+      return res.status(400).json({
+        message: "User with this Employee ID already exists."
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -34,27 +45,44 @@ export const register = async (req, res) => {
       companyId: req.body.companyId,
       branchId: req.body.branchId,
       createdBy: creatorId,
-      accountStatus: 'Active'
+      accountStatus: "Active"
     });
-
-    const creatorUser = await User.findByPk(creatorId);
-    const creatorName = creatorUser ? creatorUser.name : 'System';
 
     await logAudit({
       req,
-      action: 'AUTH_ACTION',
-      module: 'AUTH',
-      description: 'Authentication action performed',
-      entity: { id: 0, type: 'USER', name: 'System' },
+      action: "AUTH_ACTION",
+      module: "AUTH",
+      description: "Authentication action performed",
+      entity: {
+        id: newUser.id,
+        type: "USER",
+        name: newUser.name
+      },
       changes: null
     });
 
-    res.status(201).json({ message: 'User created successfully!', userId: newUser.id });
+    res.status(201).json({
+      message: "User created successfully!",
+      userId: newUser.id
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("REGISTER ERROR:", error);
+    console.error("ERROR NAME:", error.name);
+    console.error("ERROR MESSAGE:", error.message);
+    console.error("VALIDATION ERRORS:", error.errors);
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      errors: error.errors?.map((err) => ({
+        field: err.path,
+        message: err.message,
+        value: err.value
+      })) || []
+    });
   }
 };
-
 export const login = async (req, res) => {
   try {
     const { empId, name, password } = req.body;
@@ -259,16 +287,12 @@ export const getUserById = async (req, res) => {
 
 export const setupSuperAdmin = async (req, res) => {
   try {
-    // Check if any Super Admin already exists
-    const superAdminExists = await User.findOne({ where: { role: 'Super Admin' } });
-    if (superAdminExists) {
-      return res.status(403).json({ message: 'A Super Admin already exists in the system. Setup is locked.' });
-    }
-
     const { empId, name, phoneNumber, password, companyId, branchId } = req.body;
 
     if (!empId || !name || !password) {
-      return res.status(400).json({ message: 'empId, name, and password are required.' });
+      return res.status(400).json({
+        message: "empId, name, and password are required."
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -278,26 +302,43 @@ export const setupSuperAdmin = async (req, res) => {
       name,
       phoneNumber,
       password: hashedPassword,
-      role: 'Super Admin',
+      role: "Super Admin",
       companyId: companyId || null,
       branchId: branchId || null,
-      accountStatus: 'Active'
+      accountStatus: "Active"
     });
 
     await logAudit({
       req,
-      action: 'AUTH_ACTION',
-      module: 'AUTH',
-      description: 'Authentication action performed',
-      entity: { id: 0, type: 'USER', name: 'System' },
+      action: "AUTH_ACTION",
+      module: "AUTH",
+      description: "Authentication action performed",
+      entity: {
+        id: newSuperAdmin.id,
+        type: "USER",
+        name: newSuperAdmin.name
+      },
       changes: null
     });
 
-    res.status(201).json({ 
-      message: 'Initial Super Admin created successfully!', 
-      userId: newSuperAdmin.id 
+    return res.status(201).json({
+      message: "Initial Super Admin created successfully!",
+      userId: newSuperAdmin.id
     });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("SUPER ADMIN ERROR:", error);
+    console.error("ERROR NAME:", error.name);
+    console.error("ERROR ERRORS:", error.errors);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+      errors: error.errors?.map((err) => ({
+        field: err.path,
+        message: err.message,
+        value: err.value
+      })) || []
+    });
   }
 };
