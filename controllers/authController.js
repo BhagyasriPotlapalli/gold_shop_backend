@@ -48,11 +48,17 @@ export const register = async (req, res) => {
       accountStatus: "Active"
     });
 
+    // Audit: User created
     await logAudit({
       req,
-      action: "AUTH_ACTION",
-      module: "AUTH",
-      description: "Authentication action performed",
+      action: "CREATE",
+      module: "USER_MANAGEMENT",
+      description: `${req.user?.name || "System"} created user ${newUser.name}`,
+      target: {
+        id: newUser.id,
+        type: "USER",
+        name: newUser.name
+      },
       entity: {
         id: newUser.id,
         type: "USER",
@@ -83,49 +89,124 @@ export const register = async (req, res) => {
     });
   }
 };
+
+
 export const login = async (req, res) => {
   try {
     const { empId, name, password } = req.body;
 
     if (!password || (!empId && !name)) {
-      return res.status(400).json({ message: 'Please provide password and either empId or name.' });
+      return res.status(400).json({
+        message: 'Please provide password and either empId or name.'
+      });
     }
 
     const whereClause = {};
+
     if (empId) whereClause.empId = empId;
     if (name) whereClause.name = name;
 
-    const user = await User.findOne({ where: whereClause });
+    const user = await User.findOne({
+      where: whereClause
+    });
+
+    // Failed login - user not found
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+
+      await logAudit({
+        req,
+        action: "LOGIN_FAILED",
+        module: "AUTH",
+        description: `Failed login attempt for ${empId || name}`,
+        target: null,
+        entity: null,
+        changes: null
+      });
+
+      return res.status(404).json({
+        message: 'User not found.'
+      });
     }
 
     if (user.accountStatus !== 'Active') {
-      return res.status(403).json({ message: 'Account is deactivated.' });
+      return res.status(403).json({
+        message: 'Account is deactivated.'
+      });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    // Failed login - invalid password
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid password.' });
+
+      await logAudit({
+        req,
+        action: "LOGIN_FAILED",
+        module: "AUTH",
+        description: `Failed login attempt for ${user.name}`,
+        target: {
+          id: user.id,
+          type: "USER",
+          name: user.name
+        },
+        entity: {
+          id: user.id,
+          type: "USER",
+          name: user.name
+        },
+        changes: null
+      });
+
+      return res.status(401).json({
+        message: 'Invalid password.'
+      });
     }
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, companyId: user.companyId, branchId: user.branchId },
+      {
+        id: user.id,
+        role: user.role,
+        companyId: user.companyId,
+        branchId: user.branchId
+      },
       process.env.JWT_SECRET || 'secret-key',
       { expiresIn: 86400 } // 24 hours
     );
 
+    /*
+     * Set authenticated user here because login happens
+     * before verifyToken middleware.
+     *
+     * This allows logAudit() to store the actual
+     * logged-in user as actor.
+     */
+    req.user = {
+      id: user.id,
+      empId: user.empId,
+      name: user.name,
+      role: user.role
+    };
+
+    // Audit: Successful login
     await logAudit({
       req,
-      action: 'AUTH_ACTION',
-      module: 'AUTH',
-      description: 'Authentication action performed',
-      entity: { id: 0, type: 'USER', name: 'System' },
+      action: "LOGIN",
+      module: "AUTH",
+      description: `${user.name} logged into the system`,
+      target: null,
+      entity: {
+        id: user.id,
+        type: "USER",
+        name: user.name
+      },
       changes: null
     });
 
     res.status(200).json({
-      id:user.id,
+      id: user.id,
       name: user.name,
       empId: user.empId,
       role: user.role,
@@ -133,161 +214,309 @@ export const login = async (req, res) => {
       branchId: user.branchId,
       token
     });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 };
+
 
 export const updateProfileImage = async (req, res) => {
   try {
     const { empId, name } = req.body;
-    
+
     // Uses multer: file information is inside req.file
     if (!req.file) {
-      return res.status(400).json({ message: 'Please upload a profile image file.' });
+      return res.status(400).json({
+        message: 'Please upload a profile image file.'
+      });
     }
 
     if (!empId && !name) {
-      return res.status(400).json({ message: 'Please provide either empId or name.' });
+      return res.status(400).json({
+        message: 'Please provide either empId or name.'
+      });
     }
 
     const whereClause = {};
+
     if (empId) whereClause.empId = empId;
     if (name) whereClause.name = name;
 
-    const user = await User.findOne({ where: whereClause });
+    const user = await User.findOne({
+      where: whereClause
+    });
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({
+        message: 'User not found.'
+      });
     }
 
     // Save the relative path (standardizing slashes for web)
     const profileImagePath = req.file.path.replace(/\\/g, '/');
+
     user.profileImage = profileImagePath;
+
     await user.save();
 
-    const actorUser = await User.findByPk(req.userId);
-    const actorName = actorUser ? actorUser.name : 'Unknown';
-
+    // Audit: Profile image updated
     await logAudit({
       req,
-      action: 'AUTH_ACTION',
-      module: 'AUTH',
-      description: 'Authentication action performed',
-      entity: { id: 0, type: 'USER', name: 'System' },
+      action: "UPDATE",
+      module: "USER_MANAGEMENT",
+      description: `${req.user?.name || "System"} updated profile image for ${user.name}`,
+      target: {
+        id: user.id,
+        type: "USER",
+        name: user.name
+      },
+      entity: {
+        id: user.id,
+        type: "USER",
+        name: user.name
+      },
       changes: null
     });
 
-    res.status(200).json({ message: 'Profile image updated successfully', profileImage: user.profileImage });
+    res.status(200).json({
+      message: 'Profile image updated successfully',
+      profileImage: user.profileImage
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 };
+
 
 export const getProfileImage = async (req, res) => {
   try {
     const { empId, name } = req.query;
 
     if (!empId && !name) {
-      return res.status(400).json({ message: 'Please provide either empId or name as query parameter.' });
+      return res.status(400).json({
+        message: "Please provide either empId or name as query parameter.",
+      });
     }
 
     const whereClause = {};
+
     if (empId) whereClause.empId = empId;
     if (name) whereClause.name = name;
 
-    const user = await User.findOne({ where: whereClause });
+    const user = await User.findOne({
+      where: whereClause,
+    });
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({
+        message: "User not found.",
+      });
     }
 
-    res.status(200).json({ profileImage: user.profileImage });
+    const profileImage = user.profileImage
+      ? `${req.protocol}://${req.get("host")}/${user.profileImage}`
+      : null;
+
+    res.status(200).json({
+      profileImage,
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message,
+    });
   }
 };
+
 
 export const editUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phoneNumber, accountStatus, role, companyId, branchId } = req.body;
+
+    const {
+      name,
+      phoneNumber,
+      accountStatus,
+      role,
+      companyId,
+      branchId
+    } = req.body;
 
     const user = await User.findByPk(id);
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({
+        message: 'User not found.'
+      });
     }
 
     // Simple role check for edit
-    if (req.userRole === 'Staff' && req.userId !== parseInt(id, 10)) {
-      return res.status(403).json({ message: 'Unauthorized to edit other users.' });
+    if (
+      req.userRole === 'Staff' &&
+      req.userId !== parseInt(id, 10)
+    ) {
+      return res.status(403).json({
+        message: 'Unauthorized to edit other users.'
+      });
     }
 
+    /*
+     * Capture old values before updating.
+     * This is only for audit logging.
+     */
+    const before = {
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      accountStatus: user.accountStatus,
+      role: user.role,
+      companyId: user.companyId,
+      branchId: user.branchId
+    };
+
     if (name) user.name = name;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
-    if (accountStatus && req.userRole !== 'Staff') user.accountStatus = accountStatus;
-    if (role && req.userRole === 'Super Admin') user.role = role;
-    if (companyId) user.companyId = companyId;
-    if (branchId) user.branchId = branchId;
+
+    if (phoneNumber) {
+      user.phoneNumber = phoneNumber;
+    }
+
+    if (
+      accountStatus &&
+      req.userRole !== 'Staff'
+    ) {
+      user.accountStatus = accountStatus;
+    }
+
+    if (
+      role &&
+      req.userRole === 'Super Admin'
+    ) {
+      user.role = role;
+    }
+
+    if (companyId) {
+      user.companyId = companyId;
+    }
+
+    if (branchId) {
+      user.branchId = branchId;
+    }
 
     await user.save();
 
-    const actorUser = await User.findByPk(req.userId);
-    const actorName = actorUser ? actorUser.name : 'Unknown';
+    /*
+     * Capture new values after updating.
+     * This is only for audit logging.
+     */
+    const after = {
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      accountStatus: user.accountStatus,
+      role: user.role,
+      companyId: user.companyId,
+      branchId: user.branchId
+    };
 
+    // Audit: User updated
     await logAudit({
       req,
-      action: 'AUTH_ACTION',
-      module: 'AUTH',
-      description: 'Authentication action performed',
-      entity: { id: 0, type: 'USER', name: 'System' },
-      changes: null
+      action: "UPDATE",
+      module: "USER_MANAGEMENT",
+      description: `${req.user?.name || "System"} updated user ${user.name}`,
+      target: {
+        id: user.id,
+        type: "USER",
+        name: user.name
+      },
+      entity: {
+        id: user.id,
+        type: "USER",
+        name: user.name
+      },
+      changes: {
+        before,
+        after
+      }
     });
 
-    res.status(200).json({ message: 'User updated successfully' });
+    res.status(200).json({
+      message: 'User updated successfully'
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 };
+
 
 export const getAllUsers = async (req, res) => {
   try {
     const { role } = req.query;
-    
+
     const whereClause = {};
+
     if (role) {
       whereClause.role = role;
     }
 
     const users = await User.findAll({
       where: whereClause,
-      attributes: { exclude: ['password'] }
+      attributes: {
+        exclude: ['password']
+      }
     });
 
     res.status(200).json(users);
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 };
+
 
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password'] }
+      attributes: {
+        exclude: ['password']
+      }
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({
+        message: 'User not found.'
+      });
     }
 
     res.status(200).json(user);
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 };
 
 
 export const setupSuperAdmin = async (req, res) => {
   try {
-    const { empId, name, phoneNumber, password, companyId, branchId } = req.body;
+    const {
+      empId,
+      name,
+      phoneNumber,
+      password,
+      companyId,
+      branchId
+    } = req.body;
 
     if (!empId || !name || !password) {
       return res.status(400).json({
@@ -308,11 +537,17 @@ export const setupSuperAdmin = async (req, res) => {
       accountStatus: "Active"
     });
 
+    // Audit: Initial Super Admin creation
     await logAudit({
       req,
-      action: "AUTH_ACTION",
-      module: "AUTH",
-      description: "Authentication action performed",
+      action: "CREATE",
+      module: "USER_MANAGEMENT",
+      description: `Created Super Admin ${newSuperAdmin.name}`,
+      target: {
+        id: newSuperAdmin.id,
+        type: "USER",
+        name: newSuperAdmin.name
+      },
       entity: {
         id: newSuperAdmin.id,
         type: "USER",
